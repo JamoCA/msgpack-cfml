@@ -15,7 +15,7 @@ A pure ColdFusion port of [msgpack-lite](https://github.com/kawanet/msgpack-lite
 
 ## Requirements
 
-- ColdFusion 2016 or higher (tested on CF2016, CF2018, CF2021)
+- ColdFusion 2016 or higher (tested on CF2016, CF2018, CF2021), Lucee 6 and BoxLang.
 - Java 11 or higher
 - No external library dependencies
 
