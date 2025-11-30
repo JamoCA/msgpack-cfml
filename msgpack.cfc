@@ -2,7 +2,9 @@
  * MessagePack Encoder/Decoder for ColdFusion 2016+
  * Based on msgpack-lite JavaScript implementation
  * Requires Java 11+
- * 
+ *
+ * Updated 11/29/2025 17:14 Pacific - Tested in CF2016-2025, Lucee 6 & BoxLang
+ *   
  * Usage:
  *   msgpack = new MessagePack();
  *   
@@ -76,8 +78,8 @@ component displayname="MessagePack" {
     variables.MASK_8BIT = javacast("int", 255);                // 0xff
     variables.MASK_16BIT = javacast("int", 65535);             // 0xffff
     variables.MASK_32BIT = javacast("long", 4294967295);       // 0xffffffff
-    
-    /**
+
+	/**
      * Initialize MessagePack encoder/decoder
      */
     public function init() {
@@ -90,12 +92,15 @@ component displayname="MessagePack" {
      * @param asHex Return as hex string instead of binary (default: false)
      * @return byte array in MessagePack format or hex string
      */
-    public any function encode(required any value, boolean asHex=false) {
+    public any function encode(any value, boolean asHex=false) {
         var baos = variables.ByteArrayOutputStream.init();
         var dos = variables.DataOutputStream.init(baos);
-        
         try {
-            encodeValue(dos, arguments.value);
+			if (!isdefined("arguments.value") || isnull(arguments.value)){
+				encodeNil(dos);
+			} else {
+				encodeValue(dos, arguments.value);
+			}
             dos.flush();
             var bytes = baos.toByteArray();
             
@@ -135,7 +140,9 @@ component displayname="MessagePack" {
         try {
             var result = decodeValue(dis);
             // Unwrap the result if it's not a container type
-            return unwrapValue(result);
+			if (isdefined("result")){
+				return unwrapValue(result);
+			}
         } finally {
             dis.close();
             bais.close();
@@ -320,7 +327,11 @@ component displayname="MessagePack" {
             // uint32
             else if (intVal >= 0 && intVal <= 4294967295) {
                 arguments.dos.writeByte(variables.UINT32);
-                arguments.dos.writeInt(javacast("int", intVal));
+				if (intVal gt 2147483647){
+					arguments.dos.writeLong(intVal);
+				} else {
+					arguments.dos.writeInt(javacast("int", intVal));
+				}
             }
             // int8
             else if (intVal >= -128 && intVal < 0) {
@@ -344,8 +355,8 @@ component displayname="MessagePack" {
             }
         } else {
             // Float64
-            arguments.dos.writeByte(variables.FLOAT64);
-            arguments.dos.writeDouble(javacast("double", num));
+			arguments.dos.writeByte(variables.FLOAT64);
+			arguments.dos.writeDouble(javacast("double", num));
         }
     }
     
@@ -564,7 +575,11 @@ component displayname="MessagePack" {
         // uint32
         if (type == variables.UINT32) {
             var val = arguments.dis.readInt();
-            return wrapNumber(bitAnd(val, variables.MASK_32BIT));
+			try {
+				return wrapNumber(bitAnd(val, variables.MASK_32BIT));
+			} catch (any e) {
+				return wrapNumber(val);
+			}
         }
         
         // uint64 - represented as Java Long
@@ -721,4 +736,5 @@ component displayname="MessagePack" {
         
         return map;
     }
+
 }
